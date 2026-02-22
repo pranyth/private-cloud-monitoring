@@ -1,188 +1,217 @@
-Private Cloud Monitoring System
 
+# Private Cloud Monitoring System  
 Custom CloudWatch-Like Telemetry Agent for Private Cloud Environments
 
- Overview
+---
+
+## Overview
 
 This project implements a custom CloudWatch-like monitoring system designed for private cloud environments where managed monitoring services (such as AWS CloudWatch) are unavailable.
 
 The system includes:
 
-A lightweight telemetry agent running as a background Linux service
-
-A centralized monitoring backend (REST API)
-
-Persistent structured metric storage
-
-A live web dashboard with real-time visualization
-
-Production-style daemonization using systemd
+- A lightweight telemetry agent running as a background Linux service
+- A centralized monitoring backend (REST API)
+- Persistent structured metric storage
+- A live web dashboard with real-time visualization
+- Production-style daemonization using systemd
 
 This forms the Telemetry and Visualization Layer of a predictive FinOps architecture.
+<img width="1240" height="626" alt="network-bytes" src="https://github.com/user-attachments/assets/a2f6254e-ec96-489e-88d3-794a6f9dc052" />
+<img width="861" height="438" alt="memory-used" src="https://github.com/user-attachments/assets/8f640f58-8b75-47f9-a9d4-f8d560f0b146" />
+<img width="499" height="222" alt="linux-service" src="https://github.com/user-attachments/assets/84f0c9cd-d1fa-49e5-9bea-e598052725a3" />
+<img width="395" height="477" alt="json" src="https://github.com/user-attachments/assets/8df5677a-a593-4ba3-b4ad-06529834d1b3" />
+<img width="503" height="261" alt="dashboard-overview png" src="https://github.com/user-attachments/assets/e0b7ad0d-5f19-4627-910a-bed2b0951571" />
 
-<img width="503" height="261" alt="dashboard-overview png" src="https://github.com/user-attachments/assets/b6df1f41-1b74-4c69-b67b-7cdc27502b29" />
-<img width="1240" height="626" alt="network-bytes" src="https://github.com/user-attachments/assets/ec3fee13-5679-4fa1-ad45-dc1497ecbb92" />
-<img width="861" height="438" alt="memory-used" src="https://github.com/user-attachments/assets/3b2f2c35-2851-46ad-acd4-efeb307ffd01" />
-<img width="499" height="222" alt="linux-service" src="https://github.com/user-attachments/assets/363fb4d7-3ca3-4916-ac0c-53f67d6a554e" />
-<img width="395" height="477" alt="json" src="https://github.com/user-attachments/assets/47a095a5-d53a-49cf-a270-8eb429860b02" />
 
+---
 
- Problem Statement
+## Problem Statement
 
 Public cloud providers offer managed monitoring tools such as AWS CloudWatch. However, private cloud environments lack:
 
-Managed telemetry collection
-
-Centralized metric aggregation
-
-Automated resource insight pipelines
-
-FinOps-aligned cost intelligence hooks
+- Managed telemetry collection  
+- Centralized metric aggregation  
+- Automated resource insight pipelines  
+- FinOps-aligned cost intelligence hooks  
 
 This project recreates core monitoring capabilities in a cloud-agnostic, provider-independent manner, providing raw telemetry natively without relying on external vendor lock-in.
 
- System Architecture
+---
+
+## System Architecture
+
+```
 
 +-------------------------+
 |     Private Compute     |
-|        Instance         |
-|                         |
-|     Telemetry Agent     |
-|    (systemd service)    |
-+----------+--------------+
-           |
-           | HTTP POST (JSON)
-           v
+
+| Instance                    |
+| --------------------------- |
+| Telemetry Agent             |
+| (systemd service)           |
+| +-----------+-------------+ |
+
+```
+        |
+        | HTTP POST (JSON)
+        v
+```
+
 +-------------------------+
-|   Monitoring Backend    |
-|                         |
-|     Flask REST API      |
-|    /metrics endpoint    |
-|   Persistent Storage    |
-+----------+--------------+
-           |
-           | HTTP GET (JSON)
-           v
+
+| Monitoring Backend          |
+| --------------------------- |
+| Flask REST API              |
+| /metrics endpoint           |
+| Persistent Storage          |
+| +-----------+-------------+ |
+
+```
+        |
+        | HTTP GET (JSON)
+        v
+```
+
 +-------------------------+
-|      Web Dashboard      |
+|     Web Dashboard       |
 |   (Chart.js + Flask)    |
 +-------------------------+
 
+```
 
-⚙️ Components
+---
 
-1. Telemetry Agent
+## Components
 
-Collects:
+### 1. Telemetry Agent
 
-CPU utilization (%)
+The agent performs:
 
-Memory utilization (%)
+- CPU utilization collection (%)
+- Memory utilization collection (%)
+- Disk utilization collection (%)
+- Network bytes sent/received
+- Secure instance identification via IMDSv2
+- UTC timezone-aware timestamp generation
+- JSON payload transmission every 5 seconds
+- Background execution as a systemd service
+- Automatic restart on failure
 
-Disk utilization (%)
+---
 
-Network bytes sent/received
+### 2. Monitoring Backend
 
-Retrieves instance identity via IMDSv2.
+The backend:
 
-Generates UTC timezone-aware timestamps.
+- Is built using Flask
+- Exposes REST endpoint `/metrics`
+- Accepts structured JSON telemetry
+- Appends records to persistent storage (`metrics.json`)
+- Adds server-side `received_at` timestamp
+- Exposes `/data` endpoint for dashboard consumption
+- Runs as a systemd daemon
 
-Sends JSON payload every 5 seconds.
+---
 
-Runs as a systemd background service.
+### 3. Dashboard Layer
 
-Automatically restarts on failure.
+The dashboard:
 
-2️. Monitoring Backend
+- Is built with Chart.js
+- Auto-refreshes every 5 seconds
+- Displays:
+  - CPU Usage
+  - Memory Usage
+  - Disk Usage
+  - Network Activity
+- Provides a clean and responsive UI
 
-Built using Flask.
+Accessible via:
 
-Exposes REST endpoint: /metrics.
+```
 
-Accepts structured JSON telemetry.
+http://<public-ip>:5000/dashboard
 
-Appends records to persistent storage (metrics.json).
+````
 
-Adds server-side received_at timestamp.
+---
 
-Exposes /data endpoint for dashboard.
+## Deployment Instructions
 
-Runs as a systemd daemon.
+### Prerequisites
 
-3️. Dashboard Layer
+- Ubuntu Server 22.04+
+- Python 3.x
+- Git
+- Open firewall ports:
+  - 22 (SSH)
+  - 5000 (Dashboard / API)
 
-Built with Chart.js.
+---
 
-Auto-refresh every 5 seconds.
+## Clone Repository
 
-Displays: CPU Usage, Memory Usage, Disk Usage, Network Activity.
-
-Clean and responsive UI.
-
-Accessible via: http://<public-ip>:5000/dashboard
-
--> Deployment Instructions
-
-Prerequisites
-
-Ubuntu Server 22.04+
-
-Python 3.x
-
-Git
-
-Open firewall ports:
-
-22 (SSH)
-
-5000 (Dashboard / API)
-
-1. Clone Repository
-
-git clone [https://github.com/](https://github.com/)pranyth/private-cloud-monitoring.git
+```bash
+git clone https://github.com/pranyth/private-cloud-monitoring.git
 cd private-cloud-monitoring
+````
 
+---
 
-2. Install Dependencies
+## Install Dependencies
 
-Agent Setup:
+### Agent Setup
 
+```bash
 cd agent
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+```
 
+### Backend Setup
 
-Backend Setup:
-
+```bash
 cd ../backend
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+```
 
+---
 
-3. Run in Development Mode
+## Run in Development Mode
 
-Run Backend:
+### Run Backend
 
-# In the backend directory
+```bash
+cd backend
 python app.py
+```
 
+### Run Agent
 
-Run Agent:
-
-# In the agent directory
+```bash
+cd agent
 python agent.py
+```
 
+---
 
-🛠 Production Deployment (systemd)
+## Production Deployment (systemd)
 
 To ensure the services run autonomously, survive reboots, and restart on failure, deploy them using systemd.
 
-Agent Service
+---
 
-Create the service file: /etc/systemd/system/private-cw-agent.service
+### Agent Service
 
+Create:
+
+`/etc/systemd/system/private-cw-agent.service`
+
+```
 [Unit]
 Description=Private CloudWatch Agent
 After=network.target
@@ -195,19 +224,25 @@ Restart=always
 
 [Install]
 WantedBy=multi-user.target
+```
 
+Enable and start:
 
-Enable and start the agent:
-
+```bash
 sudo systemctl daemon-reload
 sudo systemctl enable private-cw-agent
 sudo systemctl start private-cw-agent
+```
 
+---
 
-Backend Service
+### Backend Service
 
-Create the service file: /etc/systemd/system/monitoring-backend.service
+Create:
 
+`/etc/systemd/system/monitoring-backend.service`
+
+```
 [Unit]
 Description=Private Cloud Monitoring Backend
 After=network.target
@@ -220,81 +255,83 @@ Restart=always
 
 [Install]
 WantedBy=multi-user.target
+```
 
+Enable and start:
 
-Enable and start the backend:
-
+```bash
 sudo systemctl daemon-reload
 sudo systemctl enable monitoring-backend
 sudo systemctl start monitoring-backend
+```
 
+---
 
- Dashboard Preview
+## Dashboard Preview
 
-(Add screenshots here after capturing from your browser)
+Add screenshots in the `docs/` folder and reference them like:
 
-🔐 Secure Instance Identification (IMDSv2)
+```markdown
+![Dashboard Overview](docs/dashboard-overview.png)
+```
 
-The agent securely retrieves instance identity using AWS IMDSv2 token-based metadata access. This ensures:
+---
 
-Accurate instance tagging
+## Secure Instance Identification (IMDSv2)
 
-Multi-node monitoring readiness
+The agent securely retrieves instance identity using AWS IMDSv2 token-based metadata access.
 
-Compatibility with predictive capacity models
+This ensures:
 
- FinOps Alignment
+* Accurate instance tagging
+* Multi-node monitoring readiness
+* Compatibility with predictive capacity models
+
+---
+
+## FinOps Alignment
 
 This monitoring system forms the foundational telemetry layer required for:
 
-Capacity forecasting
-
-Resource utilization analysis
-
-Idle resource detection
-
-Predictive scaling workflows
-
-Cost governance integration
+* Capacity forecasting
+* Resource utilization analysis
+* Idle resource detection
+* Predictive scaling workflows
+* Cost governance integration
 
 By replacing reactive monitoring with structured time-series telemetry, this project enables proactive FinOps-driven decision systems.
 
- Current Capabilities
+---
 
-[x] Custom CloudWatch-like telemetry agent
+## Current Capabilities
 
-[x] Secure IMDSv2 identity tagging
+* Custom CloudWatch-like telemetry agent
+* Secure IMDSv2 identity tagging
+* Multi-metric monitoring
+* Centralized REST aggregation
+* Persistent storage
+* Live dashboard visualization
+* systemd daemonized deployment
+* Auto-start on reboot
+* Crash recovery
 
-[x] Multi-metric monitoring
+---
 
-[x] Centralized REST aggregation
+## Future Enhancements
 
-[x] Persistent storage
+* Replace JSON storage with SQLite or time-series databases
+* Multi-instance aggregation
+* Predictive capacity modeling (ARIMA / LSTM)
+* Threshold-based alerting
+* Cost estimation layer
+* Kubernetes node monitoring support
+* Grafana integration
 
-[x] Live dashboard visualization
+---
 
-[x] systemd daemonized deployment
+## Repository Structure
 
-[x] Auto-start on reboot & crash recovery
-
- Future Enhancements
-
-Replace JSON storage with SQLite / Time-Series DB (e.g., Prometheus/InfluxDB)
-
-Multi-instance aggregation
-
-Predictive capacity modeling (ARIMA / LSTM)
-
-Threshold-based alerting
-
-Cost estimation layer
-
-Kubernetes node monitoring support
-
-Grafana integration
-
- Repository Structure
-
+```
 private-cloud-monitoring/
 │
 ├── agent/
@@ -306,12 +343,17 @@ private-cloud-monitoring/
 │   └── requirements.txt
 │
 ├── docs/
-│   └── (images go here)
+│   └── (screenshots)
 │
 ├── README.md
 └── .gitignore
+```
 
+---
 
- License
+## License
 
 This project is intended for academic and research purposes.
+
+````
+
