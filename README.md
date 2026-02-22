@@ -17,11 +17,12 @@ The system includes:
 - Production-style daemonization using systemd
 
 This forms the Telemetry and Visualization Layer of a predictive FinOps architecture.
+<img width="503" height="261" alt="dashboard-overview png" src="https://github.com/user-attachments/assets/e0b7ad0d-5f19-4627-910a-bed2b0951571" />
 <img width="1240" height="626" alt="network-bytes" src="https://github.com/user-attachments/assets/a2f6254e-ec96-489e-88d3-794a6f9dc052" />
 <img width="861" height="438" alt="memory-used" src="https://github.com/user-attachments/assets/8f640f58-8b75-47f9-a9d4-f8d560f0b146" />
 <img width="499" height="222" alt="linux-service" src="https://github.com/user-attachments/assets/84f0c9cd-d1fa-49e5-9bea-e598052725a3" />
 <img width="395" height="477" alt="json" src="https://github.com/user-attachments/assets/8df5677a-a593-4ba3-b4ad-06529834d1b3" />
-<img width="503" height="261" alt="dashboard-overview png" src="https://github.com/user-attachments/assets/e0b7ad0d-5f19-4627-910a-bed2b0951571" />
+
 
 
 ---
@@ -41,44 +42,66 @@ This project recreates core monitoring capabilities in a cloud-agnostic, provide
 
 ## System Architecture
 
-```
+The Private Cloud Monitoring System follows a layered architecture consisting of four primary components:
 
-+-------------------------+
-|     Private Compute     |
+1. Private Compute Node  
+2. Telemetry Agent  
+3. Monitoring Backend  
+4. Visualization Layer (Dashboard)
 
-| Instance                    |
-| --------------------------- |
-| Telemetry Agent             |
-| (systemd service)           |
-| +-----------+-------------+ |
+### High-Level Architecture Diagram
 
 ```
-        |
-        | HTTP POST (JSON)
-        v
++--------------------------------------------------+
+|               Private Compute Node               |
+|--------------------------------------------------|
+|  Telemetry Agent (systemd service)              |
+|  - Collects CPU, Memory, Disk, Network metrics  |
+|  - Retrieves Instance ID via IMDSv2              |
+|  - Generates UTC timestamps                      |
+|  - Sends JSON payload every 5 seconds            |
++--------------------------+-----------------------+
+                           |
+                           | HTTP POST (JSON)
+                           v
++--------------------------------------------------+
+|               Monitoring Backend                 |
+|--------------------------------------------------|
+|  Flask REST API                                 |
+|  - /metrics endpoint (receives telemetry)       |
+|  - /data endpoint (serves dashboard data)       |
+|  - Adds server-side received_at timestamp       |
+|  - Persists structured metrics (JSON storage)   |
++--------------------------+-----------------------+
+                           |
+                           | HTTP GET (JSON)
+                           v
++--------------------------------------------------+
+|                  Web Dashboard                   |
+|--------------------------------------------------|
+|  Chart.js Visualization                          |
+|  - CPU Usage                                     |
+|  - Memory Usage                                  |
+|  - Disk Usage                                    |
+|  - Network Activity                              |
+|  - Auto-refresh every 5 seconds                  |
++--------------------------------------------------+
 ```
 
-+-------------------------+
+### Architecture Flow
 
-| Monitoring Backend          |
-| --------------------------- |
-| Flask REST API              |
-| /metrics endpoint           |
-| Persistent Storage          |
-| +-----------+-------------+ |
+1. The Telemetry Agent runs as a background Linux service using systemd.
+2. The agent collects multi-metric system telemetry every 5 seconds.
+3. Metrics are structured into JSON and sent via HTTP POST to the backend.
+4. The Monitoring Backend stores telemetry and exposes it via REST APIs.
+5. The Dashboard fetches the latest data and renders real-time charts.
+6. Both agent and backend services automatically restart on failure and boot.
 
-```
-        |
-        | HTTP GET (JSON)
-        v
-```
+This architecture replicates the functional model of:
 
-+-------------------------+
-|     Web Dashboard       |
-|   (Chart.js + Flask)    |
-+-------------------------+
+Telemetry Agent → Central Monitoring Service → Visualization Layer
 
-```
+without relying on any managed cloud monitoring platform.
 
 ---
 
