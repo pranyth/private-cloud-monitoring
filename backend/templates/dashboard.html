@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Cloud Monitoring Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+<h1>Cloud Monitoring Dashboard</h1>
+
+<h2>CPU Usage</h2>
+<canvas id="cpuChart"></canvas>
+
+<h2>Memory Usage</h2>
+<canvas id="memoryChart"></canvas>
+
+<h2>Disk Usage</h2>
+<canvas id="diskChart"></canvas>
+
+<script>
+
+async function loadMetrics(){
+
+const res = await fetch("/data");
+const metrics = await res.json();
+
+let labels=[];
+
+let cpu=[]
+let mem=[]
+let disk=[]
+
+metrics.forEach(m => {
+
+labels.push(new Date(m.timestamp_utc).toLocaleTimeString())
+
+cpu.push(m.metrics.cpu_percent)
+mem.push(m.metrics.memory_percent)
+disk.push(m.metrics.disk_percent)
+
+})
+
+drawChart("cpuChart","CPU %",labels,cpu)
+drawChart("memoryChart","Memory %",labels,mem)
+drawChart("diskChart","Disk %",labels,disk)
+
+}
+
+function drawChart(id,label,labels,data){
+
+new Chart(document.getElementById(id),{
+
+type:"line",
+
+data:{
+labels:labels,
+datasets:[{
+label:label,
+data:data,
+borderColor:"blue",
+fill:false
+}]
+}
+
+})
+
+}
+
+loadMetrics()
+
+setInterval(loadMetrics,5000)
+
+</script>
+
+</body>
+</html>
